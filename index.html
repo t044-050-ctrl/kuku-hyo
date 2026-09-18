@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>九九学習アプリ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --color-kakeru-bg: #D6EDFB;
+            --color-kakeru-box: #D9F2FB;
+            --color-kakeru-text: #0284C7;
+            --color-kakerareru-bg: #FADB80;
+            --color-kakerareru-box: #FFF09B;
+            --color-kakerareru-text: #B45309;
+            --color-cell-border: #8F8E8E;
+            --color-cell-unselected-border: #E5E7EB;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            touch-action: none;
+        }
+
+        body {
+            font-family: 'Zen Maru Gothic', sans-serif;
+            background-color: #FFFFFF;
+            margin: 0;
+            padding: 8px;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            position: relative;
+        }
+
+        .grid-wrapper {
+            height: 96vh;
+            width: 96vw;
+            max-width: 96vh;
+            max-height: 96vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .grid-container {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: 0.4fr 0.7fr repeat(9, 1fr);
+            grid-template-rows: 0.4fr 0.7fr repeat(9, 1fr);
+            gap: 3px;
+            padding: 4px;
+            background-color: #FFFFFF;
+        }
+
+        /* ヘッダー要素 */
+        .header-kakeru-title {
+            background-color: var(--color-kakeru-bg);
+            color: #0369A1;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: clamp(0.85rem, 1.8vh, 1.2rem);
+            letter-spacing: 0.06em;
+            padding: 1px 4px;
+            justify-self: stretch;
+            align-self: stretch;
+            grid-column: 3 / span 9;
+            grid-row: 1;
+            white-space: nowrap;
+        }
+
+        .num-box-kakeru {
+            background-color: var(--color-kakeru-box);
+            color: #0F172A;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: clamp(1.8rem, 4.5vh, 3.2rem);
+            line-height: 1;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .num-box-kakeru:active {
+            transform: scale(0.93);
+        }
+
+        .header-kakerareru-title {
+            background-color: var(--color-kakerareru-bg);
+            color: #78350F;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: clamp(0.85rem, 1.8vh, 1.2rem);
+            writing-mode: vertical-rl;
+            text-orientation: upright;
+            letter-spacing: 0.06em;
+            padding: 4px 1px;
+            justify-self: stretch;
+            align-self: stretch;
+            grid-column: 1;
+            grid-row: 3 / span 9;
+            white-space: nowrap;
+        }
+
+        .num-box-kakerareru {
+            background-color: var(--color-kakerareru-box);
+            color: #0F172A;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: clamp(1.8rem, 4.5vh, 3.2rem);
+            line-height: 1;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .num-box-kakerareru:active {
+            transform: scale(0.93);
+        }
+
+        /* 九九セル */
+        .grid-cell {
+            aspect-ratio: 1 / 1;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: 900;
+            font-size: clamp(2rem, 6.2vh, 4.5rem);
+            line-height: 1;
+            color: #0F172A;
+            transition: background-color 0.15s, transform 0.1s ease;
+            padding: 0;
+            overflow: hidden;
+            border: 2px solid var(--color-cell-unselected-border);
+        }
+
+        .grid-cell.unselected {
+            background-color: #FFFFFF !important;
+        }
+
+        .grid-cell.unselected .kuku-val {
+            display: none;
+        }
+
+        .grid-cell.selected {
+            /* 枠線の色は非表示時と同一を維持 */
+        }
+
+        .grid-cell.selected .kuku-val {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            line-height: 1;
+        }
+
+        /* ツールバー配置 */
+        .pen-toolbar {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 172px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 5px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+            border: 1px solid #E2E8F0;
+            box-sizing: border-box;
+        }
+
+        .toolbar-row {
+            display: flex;
+            gap: 4px;
+            width: 100%;
+        }
+
+        /* ボタン基本スタイル */
+        .pen-btn {
+            flex: 1;
+            height: 42px;
+            border-radius: 8px;
+            border: 1.5px solid #CBD5E1;
+            background-color: #FFFFFF;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.62rem;
+            font-weight: 900;
+            color: #334155;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+            padding: 1px;
+            white-space: nowrap;
+            letter-spacing: -0.04em;
+            box-sizing: border-box;
+        }
+
+        .pen-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.12);
+        }
+
+        .pen-btn:active {
+            transform: scale(0.95);
+        }
+
+        .pen-btn.active {
+            border-color: #0284C7;
+            background-color: #E0F2FE;
+            color: #0369A1;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* カラー選択ボタン用アクティブ表示 */
+        .color-btn.active {
+            border-width: 2.5px;
+            border-color: #0284C7;
+            box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+        }
+
+        /* キャンバスレイヤー */
+        .canvas-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .canvas-overlay.active {
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ツールバー（右上） -->
+    <div id="pen-toolbar" class="pen-toolbar">
+        <!-- 1段目：はじめから・1つもどす -->
+        <div class="toolbar-row">
+            <button id="btn-reset" class="pen-btn" title="はじめから">
+                <svg class="w-3 h-3 text-slate-700 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                </svg>
+                <span>はじめから</span>
+            </button>
+            <button id="btn-undo" class="pen-btn" title="1つもどす">
+                <svg class="w-3 h-3 text-slate-700 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 14L4 9l5-5"/>
+                    <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/>
+                </svg>
+                <span>1つもどす</span>
+            </button>
+        </div>
+
+        <!-- 2段目：九九を全て表示する（一括トグル） -->
+        <div class="toolbar-row">
+            <button id="btn-toggle-all" class="pen-btn" title="九九の表示・非表示を全切替">
+                <svg class="w-3.5 h-3.5 text-slate-700 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <span id="text-toggle-all">九九を全て表示する</span>
+            </button>
+        </div>
+
+        <!-- 3段目：カラー選択（紫・ピンク・緑） -->
+        <div class="toolbar-row">
+            <button id="btn-color-purple" class="pen-btn color-btn active" title="紫色">
+                <span class="text-[11px] leading-none mb-0.5" style="color: #C6C1DF;">■</span>
+                <span>紫</span>
+            </button>
+            <button id="btn-color-pink" class="pen-btn color-btn" title="ピンク色">
+                <span class="text-[11px] leading-none mb-0.5" style="color: #FDCDCC;">■</span>
+                <span>ピンク</span>
+            </button>
+            <button id="btn-color-green" class="pen-btn color-btn" title="緑色">
+                <span class="text-[11px] leading-none mb-0.5" style="color: #75FFB2;">■</span>
+                <span>緑</span>
+            </button>
+        </div>
+
+        <!-- 4段目：黒・赤・青ペン -->
+        <div class="toolbar-row">
+            <button id="btn-pen-black" class="pen-btn" title="黒ペン">
+                <span class="w-2.5 h-2.5 rounded-full bg-black mb-0.5"></span>
+                <span>黒</span>
+            </button>
+            <button id="btn-pen-red" class="pen-btn" title="赤ペン">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500 mb-0.5"></span>
+                <span>赤</span>
+            </button>
+            <button id="btn-pen-blue" class="pen-btn" title="青ペン">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-500 mb-0.5"></span>
+                <span>青</span>
+            </button>
+        </div>
+
+        <!-- 5段目：けしゴム・全消去・レーザー -->
+        <div class="toolbar-row">
+            <button id="btn-eraser" class="pen-btn" title="けしゴム">
+                <svg class="w-3 h-3 text-slate-700 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 20H7L3 16C2.5 15.5 2.5 14.5 3 14L13 4C13.5 3.5 14.5 3.5 15 4L20 9C20.5 9.5 20.5 10.5 20 11L11 20"/>
+                    <path d="M6 11L13 18"/>
+                </svg>
+                <span>けしゴム</span>
+            </button>
+            <button id="btn-clear" class="pen-btn" title="全消去">
+                <span class="text-[10px] leading-none mb-0.5">🗑️</span>
+                <span>全消去</span>
+            </button>
+            <button id="btn-laser" class="pen-btn" title="レーザーポインター">
+                <span class="w-2 h-2 rounded-full bg-red-600 shadow-[0_0_4px_#ef4444] mb-0.5"></span>
+                <span>レーザー</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- お絵描き用キャンバス層 -->
+    <canvas id="draw-canvas" class="canvas-overlay"></canvas>
+    <!-- レーザーポインター用キャンバス層 -->
+    <canvas id="laser-canvas" class="canvas-overlay"></canvas>
+
+    <!-- 九九表グリッド -->
+    <div id="grid-wrapper" class="grid-wrapper">
+        <div id="grid-container" class="grid-container">
+            <div class="header-kakeru-title shadow-sm">
+                か　け　る　<ruby>数<rt style="font-size: 0.6em; font-weight: bold;">かず</rt></ruby>
+            </div>
+            <div class="header-kakerareru-title shadow-sm">
+                かけられる数
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 九九セルの状態管理 [row][col] -> { visible: boolean, color: string }
+        let cellsData = Array.from({ length: 10 }, () => 
+            Array.from({ length: 10 }, () => ({ visible: false, color: '#C6C1DF' }))
+        );
+
+        // カラー設定
+        const COLORS = {
+            purple: '#C6C1DF',
+            pink: '#FDCDCC',
+            green: '#75FFB2'
+        };
+        let selectedColor = COLORS.purple; // デフォルト色を紫に設定
+
+        // 履歴管理（Undo / Reset）
+        let historyStack = [];
+        const MAX_HISTORY = 30;
+
+        let activeTool = null; // null (指モード), 'black', 'red', 'blue', 'eraser', 'laser'
+        let isDrawing = false;
+
+        // レーザーポインター軌跡データ
+        let laserPaths = [];
+
+        const drawCanvas = document.getElementById('draw-canvas');
+        const drawCtx = drawCanvas.getContext('2d');
+        const laserCanvas = document.getElementById('laser-canvas');
+        const laserCtx = laserCanvas.getContext('2d');
+
+        function saveState() {
+            const canvasData = drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height);
+            const cellsCopy = JSON.parse(JSON.stringify(cellsData));
+            
+            historyStack.push({
+                cells: cellsCopy,
+                canvasData: canvasData
+            });
+
+            if (historyStack.length > MAX_HISTORY) {
+                historyStack.shift();
+            }
+        }
+
+        function handleReset() {
+            saveState();
+            // 九九セルをリセット (すべて非表示)
+            for (let r = 1; r <= 9; r++) {
+                for (let c = 1; c <= 9; c++) {
+                    cellsData[r][c].visible = false;
+                }
+            }
+            selectColor('purple');
+            renderGrid();
+
+            // キャンバスとレーザーをクリア
+            drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+            laserPaths = [];
+            laserCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+            selectTool(null);
+        }
+
+        function handleUndo() {
+            if (historyStack.length === 0) return;
+
+            const previousState = historyStack.pop();
+            cellsData = previousState.cells;
+            renderGrid();
+
+            drawCtx.putImageData(previousState.canvasData, 0, 0);
+            laserPaths = [];
+            laserCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+        }
+
+        function toggleAllKuku() {
+            saveState();
+            let hasHidden = false;
+            for (let r = 1; r <= 9; r++) {
+                for (let c = 1; c <= 9; c++) {
+                    if (!cellsData[r][c].visible) {
+                        hasHidden = true;
+                        break;
+                    }
+                }
+            }
+
+            // 非表示のマスが1つでもあれば全表示、全表示されていれば全非表示
+            for (let r = 1; r <= 9; r++) {
+                for (let c = 1; c <= 9; c++) {
+                    cellsData[r][c].visible = hasHidden;
+                    if (hasHidden) {
+                        cellsData[r][c].color = '#FFFFFF'; // 全表示の背景色は「白」
+                    }
+                }
+            }
+            renderGrid();
+        }
+
+        function selectColor(colorKey) {
+            selectedColor = COLORS[colorKey];
+            ['purple', 'pink', 'green'].forEach(key => {
+                const btn = document.getElementById(`btn-color-${key}`);
+                if (btn) {
+                    if (key === colorKey) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                }
+            });
+        }
+
+        function resizeCanvases() {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = drawCanvas.width;
+            tempCanvas.height = drawCanvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            if (drawCanvas.width > 0 && drawCanvas.height > 0) {
+                tempCtx.drawImage(drawCanvas, 0, 0);
+            }
+
+            drawCanvas.width = window.innerWidth;
+            drawCanvas.height = window.innerHeight;
+            laserCanvas.width = window.innerWidth;
+            laserCanvas.height = window.innerHeight;
+
+            if (tempCanvas.width > 0 && tempCanvas.height > 0) {
+                drawCtx.drawImage(tempCanvas, 0, 0);
+            }
+        }
+
+        function selectTool(tool) {
+            if (tool === 'clear') {
+                saveState();
+                drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+                laserPaths = [];
+                laserCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+                selectTool(null);
+                return;
+            }
+
+            if (activeTool === tool) {
+                activeTool = null; // 再タップで指モードへ
+            } else {
+                activeTool = tool;
+            }
+
+            ['black', 'red', 'blue', 'eraser', 'laser'].forEach(t => {
+                const btn = document.getElementById(`btn-${t === 'eraser' ? 'eraser' : (t === 'laser' ? 'laser' : 'pen-' + t)}`);
+                if (btn) {
+                    if (activeTool === t) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                }
+            });
+
+            if (activeTool) {
+                drawCanvas.classList.add('active');
+                laserCanvas.classList.add('active');
+            } else {
+                drawCanvas.classList.remove('active');
+                laserCanvas.classList.remove('active');
+            }
+        }
+
+        function startDrawing(e) {
+            if (!activeTool) return;
+            isDrawing = true;
+            const x = e.clientX || (e.touches && e.touches[0].clientX);
+            const y = e.clientY || (e.touches && e.touches[0].clientY);
+
+            if (activeTool === 'laser') {
+                laserPaths.push({
+                    points: [{ x, y }],
+                    fadeStart: null
+                });
+            } else {
+                saveState();
+                drawCtx.beginPath();
+                drawCtx.moveTo(x, y);
+            }
+        }
+
+        function draw(e) {
+            if (!isDrawing || !activeTool) return;
+            const x = e.clientX || (e.touches && e.touches[0].clientX);
+            const y = e.clientY || (e.touches && e.touches[0].clientY);
+
+            if (activeTool === 'laser') {
+                const currentPath = laserPaths[laserPaths.length - 1];
+                if (currentPath && !currentPath.fadeStart) {
+                    currentPath.points.push({ x, y });
+                }
+            } else {
+                drawCtx.lineWidth = activeTool === 'eraser' ? 24 : 4;
+                drawCtx.lineCap = 'round';
+                drawCtx.lineJoin = 'round';
+
+                if (activeTool === 'eraser') {
+                    drawCtx.globalCompositeOperation = 'destination-out';
+                } else {
+                    drawCtx.globalCompositeOperation = 'source-over';
+                    if (activeTool === 'black') drawCtx.strokeStyle = '#000000';
+                    else if (activeTool === 'red') drawCtx.strokeStyle = '#EF4444';
+                    else if (activeTool === 'blue') drawCtx.strokeStyle = '#3B82F6';
+                }
+
+                drawCtx.lineTo(x, y);
+                drawCtx.stroke();
+            }
+        }
+
+        function stopDrawing() {
+            if (isDrawing && activeTool === 'laser') {
+                const currentPath = laserPaths[laserPaths.length - 1];
+                if (currentPath && !currentPath.fadeStart) {
+                    currentPath.fadeStart = Date.now();
+                }
+            }
+            isDrawing = false;
+        }
+
+        function renderLaser() {
+            laserCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+            const now = Date.now();
+            const FADE_DURATION = 2000;
+
+            laserPaths.forEach(path => {
+                let alpha = 1.0;
+                if (path.fadeStart) {
+                    const elapsed = now - path.fadeStart;
+                    alpha = Math.max(0, 1 - elapsed / FADE_DURATION);
+                }
+
+                if (alpha <= 0 || path.points.length === 0) return;
+
+                laserCtx.save();
+                if (path.points.length === 1) {
+                    laserCtx.beginPath();
+                    laserCtx.arc(path.points[0].x, path.points[0].y, 4, 0, Math.PI * 2);
+                    laserCtx.fillStyle = `rgba(239, 68, 68, ${alpha})`;
+                    laserCtx.shadowColor = `rgba(239, 68, 68, ${alpha * 0.8})`;
+                    laserCtx.shadowBlur = 8;
+                    laserCtx.fill();
+                } else {
+                    laserCtx.beginPath();
+                    laserCtx.moveTo(path.points[0].x, path.points[0].y);
+                    for (let i = 1; i < path.points.length; i++) {
+                        laserCtx.lineTo(path.points[i].x, path.points[i].y);
+                    }
+                    laserCtx.strokeStyle = `rgba(239, 68, 68, ${alpha})`;
+                    laserCtx.lineWidth = 6;
+                    laserCtx.lineCap = 'round';
+                    laserCtx.lineJoin = 'round';
+                    laserCtx.shadowColor = `rgba(239, 68, 68, ${alpha * 0.8})`;
+                    laserCtx.shadowBlur = 8;
+                    laserCtx.stroke();
+                }
+                laserCtx.restore();
+            });
+
+            laserPaths = laserPaths.filter(path => {
+                if (!path.fadeStart) return true;
+                return (now - path.fadeStart) < FADE_DURATION;
+            });
+
+            requestAnimationFrame(renderLaser);
+        }
+
+        function initGrid() {
+            // イベント登録
+            document.getElementById('btn-reset').addEventListener('click', handleReset);
+            document.getElementById('btn-undo').addEventListener('click', handleUndo);
+            document.getElementById('btn-toggle-all').addEventListener('click', toggleAllKuku);
+
+            document.getElementById('btn-color-purple').addEventListener('click', () => selectColor('purple'));
+            document.getElementById('btn-color-pink').addEventListener('click', () => selectColor('pink'));
+            document.getElementById('btn-color-green').addEventListener('click', () => selectColor('green'));
+
+            document.getElementById('btn-pen-black').addEventListener('click', () => selectTool('black'));
+            document.getElementById('btn-pen-red').addEventListener('click', () => selectTool('red'));
+            document.getElementById('btn-pen-blue').addEventListener('click', () => selectTool('blue'));
+            document.getElementById('btn-eraser').addEventListener('click', () => selectTool('eraser'));
+            document.getElementById('btn-clear').addEventListener('click', () => selectTool('clear'));
+            document.getElementById('btn-laser').addEventListener('click', () => selectTool('laser'));
+
+            window.addEventListener('resize', resizeCanvases);
+            resizeCanvases();
+
+            [laserCanvas, drawCanvas].forEach(canvas => {
+                canvas.addEventListener('pointerdown', startDrawing);
+                canvas.addEventListener('pointermove', draw);
+                canvas.addEventListener('pointerup', stopDrawing);
+                canvas.addEventListener('pointercancel', stopDrawing);
+            });
+
+            const container = document.getElementById('grid-container');
+
+            // 1. かける数 ヘッダー (列 1~9)
+            for (let c = 1; c <= 9; c++) {
+                const numBox = document.createElement('div');
+                numBox.id = `col-num-${c}`;
+                numBox.className = 'num-box-kakeru shadow-sm';
+                numBox.innerText = c;
+                numBox.style.gridColumn = c + 2;
+                numBox.style.gridRow = 2;
+
+                numBox.addEventListener('pointerdown', (e) => {
+                    if (activeTool) return;
+                    e.preventDefault();
+                    saveState();
+                    toggleCol(c);
+                });
+                container.appendChild(numBox);
+            }
+
+            // 2. かけられる数 ヘッダー (行 1~9) ＆ 九九セル
+            for (let r = 1; r <= 9; r++) {
+                const rowBox = document.createElement('div');
+                rowBox.id = `row-num-${r}`;
+                rowBox.className = 'num-box-kakerareru shadow-sm';
+                rowBox.innerText = r;
+                rowBox.style.gridColumn = 2;
+                rowBox.style.gridRow = r + 2;
+
+                rowBox.addEventListener('pointerdown', (e) => {
+                    if (activeTool) return;
+                    e.preventDefault();
+                    saveState();
+                    toggleRow(r);
+                });
+                container.appendChild(rowBox);
+
+                for (let c = 1; c <= 9; c++) {
+                    const cell = document.createElement('div');
+                    cell.id = `cell-${r}-${c}`;
+                    cell.className = 'grid-cell unselected';
+                    cell.style.gridColumn = c + 2;
+                    cell.style.gridRow = r + 2;
+
+                    const valSpan = document.createElement('span');
+                    valSpan.className = 'kuku-val';
+                    valSpan.innerText = r * c; // 答えのみ表示
+                    cell.appendChild(valSpan);
+
+                    cell.addEventListener('pointerdown', (e) => {
+                        if (activeTool) return;
+                        e.preventDefault();
+                        saveState();
+                        toggleCell(r, c);
+                    });
+
+                    container.appendChild(cell);
+                }
+            }
+
+            renderGrid();
+            requestAnimationFrame(renderLaser);
+        }
+
+        // 単一セルの表示/非表示トグル
+        function toggleCell(r, c) {
+            const cellState = cellsData[r][c];
+            if (!cellState.visible) {
+                cellState.visible = true;
+                cellState.color = selectedColor;
+            } else {
+                // すでに表示されている場合：現在の色が選択中の色と異なる場合は選択色に変更（非表示にしない）
+                if (cellState.color !== selectedColor) {
+                    cellState.color = selectedColor;
+                } else {
+                    // 同じ色で再度タップされた場合のみ非表示にする
+                    cellState.visible = false;
+                }
+            }
+            renderGrid();
+        }
+
+        // 行全体の表示/非表示トグル
+        function toggleRow(r) {
+            let hasHidden = false;
+            for (let c = 1; c <= 9; c++) {
+                if (!cellsData[r][c].visible) {
+                    hasHidden = true;
+                    break;
+                }
+            }
+            for (let c = 1; c <= 9; c++) {
+                cellsData[r][c].visible = hasHidden;
+                if (hasHidden) cellsData[r][c].color = '#FFFFFF';
+            }
+            renderGrid();
+        }
+
+        // 列全体の表示/非表示トグル
+        function toggleCol(c) {
+            let hasHidden = false;
+            for (let r = 1; r <= 9; r++) {
+                if (!cellsData[r][c].visible) {
+                    hasHidden = true;
+                    break;
+                }
+            }
+            for (let r = 1; r <= 9; r++) {
+                cellsData[r][c].visible = hasHidden;
+                if (hasHidden) cellsData[r][c].color = '#FFFFFF';
+            }
+            renderGrid();
+        }
+
+        // 九九表の描画更新
+        function renderGrid() {
+            let allVisible = true;
+
+            for (let r = 1; r <= 9; r++) {
+                for (let c = 1; c <= 9; c++) {
+                    const cell = document.getElementById(`cell-${r}-${c}`);
+                    if (!cell) continue;
+
+                    const state = cellsData[r][c];
+                    if (state.visible) {
+                        cell.className = 'grid-cell selected';
+                        cell.style.backgroundColor = state.color;
+                    } else {
+                        cell.className = 'grid-cell unselected';
+                        cell.style.backgroundColor = '#FFFFFF';
+                        allVisible = false;
+                    }
+                }
+            }
+
+            // 「九九を全て表示する」ボタンのテキスト切り替え
+            const toggleAllText = document.getElementById('text-toggle-all');
+            if (allVisible) {
+                toggleAllText.innerText = '九九を全て非表示にする';
+            } else {
+                toggleAllText.innerText = '九九を全て表示する';
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', initGrid);
+        window.addEventListener('contextmenu', (e) => e.preventDefault());
+        window.addEventListener('dblclick', (e) => e.preventDefault());
+    </script>
+</body>
+</html>
