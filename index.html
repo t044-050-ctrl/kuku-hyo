@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>九九学習アプリ</title>
+    <title>九九表のきまり</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -368,9 +368,9 @@
     </div>
 
     <script>
-        // 九九セルの状態管理 [row][col] -> { visible: boolean, color: string }
+        // 九九セルの状態管理 [row][col] -> { visible: boolean, color: string, origin: 'hidden' | 'white' }
         let cellsData = Array.from({ length: 10 }, () => 
-            Array.from({ length: 10 }, () => ({ visible: false, color: '#C6C1DF' }))
+            Array.from({ length: 10 }, () => ({ visible: false, color: '#C6C1DF', origin: 'hidden' }))
         );
 
         // カラー設定
@@ -416,6 +416,7 @@
             for (let r = 1; r <= 9; r++) {
                 for (let c = 1; c <= 9; c++) {
                     cellsData[r][c].visible = false;
+                    cellsData[r][c].origin = 'hidden';
                 }
             }
             selectColor('purple');
@@ -458,6 +459,9 @@
                     cellsData[r][c].visible = hasHidden;
                     if (hasHidden) {
                         cellsData[r][c].color = '#FFFFFF'; // 全表示の背景色は「白」
+                        cellsData[r][c].origin = 'white';   // 全表示由来フラグ
+                    } else {
+                        cellsData[r][c].origin = 'hidden';
                     }
                 }
             }
@@ -731,16 +735,72 @@
         // 単一セルの表示/非表示トグル
         function toggleCell(r, c) {
             const cellState = cellsData[r][c];
+
             if (!cellState.visible) {
+                // 1. 無地（未表示）状態からタップされた場合 -> 「数字あり（選択色）」へ
                 cellState.visible = true;
                 cellState.color = selectedColor;
+                cellState.origin = 'hidden';
+            } else if (cellState.color === '#FFFFFF') {
+                // 2. 「数字あり（白）」状態からタップされた場合 -> 「数字あり（選択色）」へ
+                cellState.color = selectedColor;
+                cellState.origin = 'white';
             } else {
-                // すでに表示されている場合：現在の色が選択中の色と異なる場合は選択色に変更（非表示にしない）
-                if (cellState.color !== selectedColor) {
-                    cellState.color = selectedColor;
+                // 3. すでに選択色や別の色が塗られている場合
+                if (cellState.color === selectedColor) {
+                    // 同じ色をもう一度タップした場合はトグル動作
+                    if (cellState.origin === 'white') {
+                        // 白パネル由来なら「数字あり（白）」に戻す
+                        cellState.color = '#FFFFFF';
+                    } else {
+                        // 無地由来なら「無地」に戻す
+                        cellState.visible = false;
+                    }
                 } else {
-                    // 同じ色で再度タップされた場合のみ非表示にする
-                    cellState.visible = false;
+                    // 異なる色を選択中の場合は選択色へ更新
+                    cellState.color = selectedColor;
+                }
+            }
+            renderGrid();
+        }
+
+        // 行全体の表示/非表示トグル
+        function toggleRow(r) {
+            let hasHidden = false;
+            for (let c = 1; c <= 9; c++) {
+                if (!cellsData[r][c].visible) {
+                    hasHidden = true;
+                    break;
+                }
+            }
+            for (let c = 1; c <= 9; c++) {
+                cellsData[r][c].visible = hasHidden;
+                if (hasHidden) {
+                    cellsData[r][c].color = '#FFFFFF';
+                    cellsData[r][c].origin = 'white';
+                } else {
+                    cellsData[r][c].origin = 'hidden';
+                }
+            }
+            renderGrid();
+        }
+
+        // 列全体の表示/非表示トグル
+        function toggleCol(c) {
+            let hasHidden = false;
+            for (let r = 1; r <= 9; r++) {
+                if (!cellsData[r][c].visible) {
+                    hasHidden = true;
+                    break;
+                }
+            }
+            for (let r = 1; r <= 9; r++) {
+                cellsData[r][c].visible = hasHidden;
+                if (hasHidden) {
+                    cellsData[r][c].color = '#FFFFFF';
+                    cellsData[r][c].origin = 'white';
+                } else {
+                    cellsData[r][c].origin = 'hidden';
                 }
             }
             renderGrid();
